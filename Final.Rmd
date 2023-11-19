@@ -1,0 +1,222 @@
+---
+title: "Final"
+output:
+  pdf_document: default
+---
+
+step 1-get all the possible d\^2 with our data and distribute it
+
+```{r}
+library(gtools)
+library(MASS)
+
+df1 <- read.csv("Body_masses.csv")
+
+df1$Body.mass <- log(df1$Body.mass)
+
+results_df <- data.frame()
+
+num_permutations <- 2000
+
+for (i in 1:num_permutations) {
+  
+  perms <- sample(df1$Body.mass, length(df1$Body.mass), replace = FALSE)
+  
+  results_df <- rbind(results_df, data.frame(Permutation = i, Body.mass = perms))
+}
+
+
+calculate_sum_squared_differences <- function(vector) {
+  squared_differences <- (vector[-1] - vector[-length(vector)])^2
+  sum_squared_differences <- sum(squared_differences)
+  mean_value <- mean(vector)
+  differences <- vector - mean_value
+  sum_of_differences <- sum((differences)^{2})
+  c_value <- sum_squared_differences / sum_of_differences
+  return(c_value)
+}
+
+c_value_df <- data.frame(Result = numeric(0))
+
+for (i in 1:num_permutations) {
+  perm_values <- results_df$Body.mass[results_df$Permutation == i]
+  result <- calculate_sum_squared_differences(perm_values)
+  c_value_df <- rbind(c_value_df, data.frame(Result = result))
+}
+
+
+# fitting a normal distribution to my results
+fit <- fitdistr(c_value_df$Result, densfun = "normal")
+mean_estimate <- fit$estimate["mean"]
+sd_estimate <- fit$estimate["sd"]
+
+# I thought it was normal now 
+hist(c_value_df$Result, main = "Histogram of C Values", xlab = "C Values", ylab = "Frequency", col = "lightblue", border = "black")
+
+
+
+```
+intermediate step to see that this works correctly 
+
+
+```{r}
+library(ape)
+
+original_tree <- read.tree(text = "((A, B), C);")
+tree1 <- read.tree(text = "((A, B), C);")
+
+original_edges <- original_tree$edge
+
+# Find unique first column entries
+unique_first_column <- unique(original_edges[, 1])
+
+# Create a list to store groups of permutations
+permutation_groups <- list()
+
+# Iterate over unique first column entries
+for (entry in unique_first_column) {
+  # Find rows with the same first column entry
+  rows_in_group <- which(original_edges[, 1] == entry)
+  
+  # Extract permutations in the group
+  permutations_in_group <- original_edges[rows_in_group, ]
+  
+  # Store the group in the list
+  permutation_groups[[as.character(entry)]] <- permutations_in_group
+}
+
+# Plot each group
+par(mfrow = c(2, 2))  # Set up a 2x2 plot layout
+for (i in seq_along(permutation_groups)) {
+  group <- permutation_groups[[i]]
+  
+  # Check if there are enough rows to construct a tree
+  if (nrow(group) >= 3) {  # At least 3 rows are needed for a tree
+    # Create a tree with the current group
+    current_tree <- tree1
+    current_tree$edge <- group
+    
+    # Plot the tree
+    plot.phylo(current_tree, main = paste("Group", i), cex = 1.2)
+  } else {
+    cat("Skipping Group", i, "due to insufficient rows for a tree.\n")
+  }
+}
+
+# Reset the plotting layout
+par(mfrow = c(1, 1))
+
+
+
+
+```
+
+```{r}
+library(ape)
+library(gtools)
+
+original_tree <- read.tree(text = "((A, B), C);")
+tree1 <- read.tree(text = "((A, B), C);")
+
+original_edges <- original_tree$edge
+
+# Find unique first column entries
+unique_first_column <- unique(original_edges[, 1])
+
+# Create a list to store groups of permutations
+permutation_groups <- list()
+
+for (i in seq_len(nrow(all_permutations))) {
+  
+  # Create a tree with the current permutation of groups
+  current_tree <- tree1
+  
+  # Update the edge matrix based on the current permutation
+  for (j in seq_along(unique_first_column)) {
+    browser()
+    entry <- unique_first_column[j]
+    rows_in_group <- which(original_edges[, 1] == entry)
+    current_tree$edge[rows_in_group, ] <- permutation_groups[[as.character(entry)]][all_permutations[i, j], ]
+  }
+  
+  # Plot the tree
+  plot.phylo(current_tree, main = paste("Permutation", i), cex = 1.2)
+}
+
+# Reset the plotting layout
+par(mfrow = c(1, 1))
+```
+
+```{r}
+library(ape)
+library(phangorn)
+library(gtools)
+
+original_tree <- read.tree(text = "((A, B), (C, D), E);")
+num_tips <- length(original_tree$tip.label)
+
+# Define groups based on the original tree structure
+groups <- list(c("A", "B"), c("C", "D"), "E")
+
+rooted_tree <- multi2di(original_tree)
+original_labels <- original_tree$tip.label
+tree_list <- list()
+
+# I wanna permute along the groups now
+for (i in seq_along(groups)) {
+  group <- groups[[i]]
+  
+  # check if more than 2 perms if not just paste 
+  if (length(group) >= 2) {
+    permuted_tree <- rooted_tree
+    permuted_tree$tip.label[group] <- original_labels[group][unlist(permutations(length(group), 2, group))]
+    tree_list[[length(tree_list) + 1]] <- permuted_tree
+  } else {
+    tree_list[[length(tree_list) + 1]] <- rooted_tree
+  }
+}
+# Why the NA's also, im expecting 4? 
+print(tree_list)
+
+```
+step 2-
+
+
+```{r}
+library(ape)
+library(phangorn)
+library(gtools)
+
+tree_string <- "((((((Odocoileus_hemionus,Odocoileus_virginianus),Rangifer_tarandus),Alces_alces),((Dama_dama,Cervus_canadensis))),Antilocapra_americana));"
+
+tree <- read.tree(text = tree_string)
+
+tree$edge
+# I'm building the joint data outside of the csv file
+tip_labels <- tree$tip.label
+data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
+
+#have to find something that gives me the correct trees 
+
+# adapted function from above 
+calculate_c_value <- function(data_vector) {
+  squared_differences <- (data_vector[-1] - data_vector[-length(data_vector)])^2
+  sum_squared_differences <- sum(squared_differences)
+  mean_value <- mean(data_vector)
+  differences <- data_vector - mean_value
+  sum_of_differences <- sum(differences^2)
+  c_value <- sum_squared_differences / sum_of_differences
+  return(c_value)
+}
+
+# getting all the c values 
+#c_values <- sapply(data_vectors_list, calculate_c_value)
+
+#average_c_value <- mean(c_values)
+
+```
+
+
+```{r}
+df2 <- read.csv("Salamanders.csv")
+```
