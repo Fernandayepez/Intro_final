@@ -62,127 +62,161 @@ intermediate step to see that this works correctly
 
 ```{r}
 library(ape)
+library(igraph)
+library(purrr)
 
-# Your original code to obtain all_groups
-original_tree <- read.tree(text = "((A, B), C);")
-original_edges <- original_tree$edge
+# Begin by getting the edge matrix
+original_tree <- read.tree(text = "((A, B), (C, D));")
+edges <- original_tree$edge
 
-# Find unique first column entries
-unique_first_column <- unique(original_edges[, 1])
-print(unique_first_column)
-# Create a list to store both original and permuted groups of permutations
-all_groups <- list()
+# function that gives us the adjacency matrix from our original edge 
+create_adjacency_matrix <- function(edges) {
+  # Find the number of nodes, to get the size of our matrix
+  nodes <- unique(as.vector(edges))
+  num_nodes <- length(nodes)
 
+  # Create an empty adjacency matrix
+  adj_matrix <- matrix(0, nrow = num_nodes, ncol = num_nodes)
 
-permute_by_group <- function(edge_matrix) {
-  # Find unique first column entries
-  unique_first_column <- unique(edge_matrix[, 1])
+  # Recursively populate 
+  for (i in 1:nrow(edges)) {
+    #we look at the edge matrix and the right column are the from_nodes
+    from_node <- edges[i, 1]
+    #left columns
+    to_node <- edges[i, 2]
+
+    if (from_node %in% nodes) {
+  #storing the first to_node as the right child, defined as 1
+      adj_matrix[from_node, to_node] <- 1 
+  #we remove from_node from the list
+      nodes <- nodes[nodes != from_node]
+    } else {
+  #if it appears again then we assign the remaining child to the left, defined as 2
+      adj_matrix[from_node, to_node] <- 2  
+    }
+  }
+
+  return(adj_matrix)
+}
+
+#We wish to find all combinations 
+all_combinations <- function(adj_matrix, num) {
+ #we have a function to find children later
+ results <- find_children(adj_matrix, num)
+ left_child <- results$left
+ right_child <- results$right
+
+ #first we take the case that there are no kids, if none then we just return a copy of what we have
+  if (left_child == -1) {
+    copy_adj_matrix <- adj_matrix
+    return(copy_adj_matrix)
+  } else {
+    # Recursively taking the combinations of the left tree
+    left_1_copy_adj_matrix <- adj_matrix
+    left_1 <- all_combinations(left_1_copy_adj_matrix, left_child)
+    
+    # Recursively taking the combinations of the right tree
+    right_1_copy_adj_matrix <- adj_matrix
+    right_1 <- all_combinations(right_1_copy_adj_matrix, right_child)
+    
+    
+    # Swap left and right
+    adj_matrix[num, left_child] <- 1
+    adj_matrix[num, right_child] <- 2
+    print(adj_matrix)
+    
+    #now switching the placement of the left tree with the right tree
+    left_2_copy_adj_matrix <- adj_matrix
+    left_2 <- all_combinations(left_2_copy_adj_matrix, right_child)
+    
+    # Swap left and right
+    adj_matrix[num, left_child] <- 1
+    adj_matrix[num, right_child] <- 2 
+    #now switching the placement of the left right with the left tree
+    right_2_copy_adj_matrix <- adj_matrix
+    right_2 <- all_combinations(right_2_copy_adj_matrix, left_child)
+    
+    return(list(left_1, left_2, right_1, right_2))
+    
+  }
+}
+
+find_children <- function(adj_matrix, node) {
+  children_right <- which(adj_matrix[node,] == 1)  # Right child
+  children_left <- which(adj_matrix[node,] == 2)  # Left child
+
   
-  # Create a list to store both original and permuted groups of permutations
-  all_groups <- list()
-  
-  # Iterate over unique first column entries
-  for (entry in unique_first_column) {
-    # Find rows with the same first column entry
-    rows_in_group <- which(edge_matrix[, 1] == entry)
-    
-    # Extract permutations in the group
-    permutations_in_group <- edge_matrix[rows_in_group, ]
-    
-    # Permute the group (shuffling the order of rows)
-    permuted_group <- permutations_in_group[sample(nrow(permutations_in_group)), ]
-    
-    # Store both the original and permuted groups in the list
-    all_groups[[as.character(entry)]] <- list(original = permutations_in_group, permuted = permuted_group)
+  if (identical(children_right, integer(0))) {
+    result <- list(right = -1, left = -1)
+  } else {
+    result <- list(right = children_right, left = children_left)
   }
   
-  return(all_groups)
-}
-# Create a list to store all combinations
-all_combinations <- list()
 
-# Iterate over unique first column entries
-for (entry in unique_first_column) {
-  original_group <- all_groups[[as.character(entry)]]$original
-  permuted_group <- all_groups[[as.character(entry)]]$permuted
-  
-  # Create combinations following the specified pattern
-  combinations <- list(
-    matrix(rbind(original_group[1, , drop = FALSE], permuted_group[1:2, , drop = FALSE], original_group[2, , drop = FALSE]), ncol = 2, byrow = TRUE)
-  )
-  
-  # Store the matrix in the list
-  all_combinations[[as.character(entry)]] <- combinations
+  return(result)
 }
 
-# Print the result
-print(all_combinations)
 
+
+adj_matrix <- create_adjacency_matrix(edges)
+print(adj_matrix)
+result <- all_combinations(adj_matrix, 5)
+
+# Function to get the last matrix in each sublist
+get_last_matrix <- function(lst) {
+  lapply(lst, function(x) {
+    if (is.list(x)) {
+      get_last_matrix(head(x, n = 1))
+      get_last_matrix(head(x, n = 2))
+    } else {
+      x
+    }
+  })
+}
+# Apply the function to your list
+unique_matrices <- get_last_matrix(result)
+
+get_edge_matrix <- function(adj_matrix) {
+  num_nodes <- nrow(adj_matrix)
+  edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
+
+  # Helper function for recursive exploration
+  explore_children <- function(parent, root) {
+    children <- which(adj_matrix[parent, ] != 0)
+    right_children <- children[adj_matrix[parent, children] == 1]
+    left_children <- children[adj_matrix[parent, children] == 2]
+    
+    # First, add right children
+    for (child in right_children) {
+      edge <- c(parent, child)
+      edge_matrix <<- rbind(edge_matrix, edge)
+      
+      # Recursively explore children
+      explore_children(child, root)
+    }
+
+    # Then, add left children
+    for (child in left_children) {
+      edge <- c(parent, child)
+      edge_matrix <<- rbind(edge_matrix, edge)
+      
+      # Recursively explore children
+      explore_children(child, root)
+    }
+  }
+
+  # Iterate through nodes to find roots and start exploration
+  for (node in 1:num_nodes) {
+    if (sum(adj_matrix[, node] != 0) == 0) {
+      # Node is a root, start exploration
+      explore_children(node, node)
+    }
+  }
+
+  return(edge_matrix)
+}
+print(unique_matrices)
 ```
-
-```{r}
-# Function to convert a matrix to a phylogenetic tree
-matrix_to_tree <- function(matrix) {
-  edge_matrix <- as.matrix(matrix)
-  tree <- ape::phylo(edge = edge_matrix)
-  return(tree)
-}
-
-
-# Convert all combinations to trees
-all_trees <- lapply(all_combinations, function(group) {
-  lapply(group, matrix_to_tree)
-})
-
-# Print the resulting trees
-print(all_trees)
-
-
-
-
-```
-
-
-
-```{r}
-
-library(ape)
-
-original_tree <- read.tree(text = "((A, B), C);")
-
-original_edges <- original_tree$edge
-
-print(original_edges)
-
-# Find unique first column entries
-unique_first_column <- unique(original_edges[, 1])
-
-# Create a list to store both original and permuted groups of permutations
-all_groups <- list()
-
-# Iterate over unique first column entries
-for (entry in unique_first_column) {
-  # Find rows with the same first column entry
-  rows_in_group <- which(original_edges[, 1] == entry)
-  
-  # Extract permutations in the group
-  permutations_in_group <- original_edges[rows_in_group, ]
-  
-  # Permute the group (shuffling the order of rows)
-  permuted_group <- permutations_in_group[sample(nrow(permutations_in_group)), ]
-  
-  # Store both the original and permuted groups in the list
-  all_groups[[as.character(entry)]] <- list(original = permutations_in_group, permuted = permuted_group)
-}
-
-
-print(all_groups)
-
-
-
-
-```
-
 
 ```{r}
 library(ape)
