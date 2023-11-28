@@ -2,6 +2,7 @@
 title: "Final"
 output:
   pdf_document: default
+
 ---
 
 step 1-get all the possible d\^2 with our data and distribute it
@@ -56,22 +57,108 @@ hist(c_value_df$Result, main = "Histogram of C Values", xlab = "C Values", ylab 
 
 
 ```
-intermediate step to see that this works correctly 
 
+intermediate step to see that this works correctly 
 
 ```{r}
 library(ape)
 
+# Your original code to obtain all_groups
 original_tree <- read.tree(text = "((A, B), C);")
-tree1 <- read.tree(text = "((A, B), C);")
-
 original_edges <- original_tree$edge
 
 # Find unique first column entries
 unique_first_column <- unique(original_edges[, 1])
+print(unique_first_column)
+# Create a list to store both original and permuted groups of permutations
+all_groups <- list()
 
-# Create a list to store groups of permutations
-permutation_groups <- list()
+
+permute_by_group <- function(edge_matrix) {
+  # Find unique first column entries
+  unique_first_column <- unique(edge_matrix[, 1])
+  
+  # Create a list to store both original and permuted groups of permutations
+  all_groups <- list()
+  
+  # Iterate over unique first column entries
+  for (entry in unique_first_column) {
+    # Find rows with the same first column entry
+    rows_in_group <- which(edge_matrix[, 1] == entry)
+    
+    # Extract permutations in the group
+    permutations_in_group <- edge_matrix[rows_in_group, ]
+    
+    # Permute the group (shuffling the order of rows)
+    permuted_group <- permutations_in_group[sample(nrow(permutations_in_group)), ]
+    
+    # Store both the original and permuted groups in the list
+    all_groups[[as.character(entry)]] <- list(original = permutations_in_group, permuted = permuted_group)
+  }
+  
+  return(all_groups)
+}
+# Create a list to store all combinations
+all_combinations <- list()
+
+# Iterate over unique first column entries
+for (entry in unique_first_column) {
+  original_group <- all_groups[[as.character(entry)]]$original
+  permuted_group <- all_groups[[as.character(entry)]]$permuted
+  
+  # Create combinations following the specified pattern
+  combinations <- list(
+    matrix(rbind(original_group[1, , drop = FALSE], permuted_group[1:2, , drop = FALSE], original_group[2, , drop = FALSE]), ncol = 2, byrow = TRUE)
+  )
+  
+  # Store the matrix in the list
+  all_combinations[[as.character(entry)]] <- combinations
+}
+
+# Print the result
+print(all_combinations)
+
+```
+
+```{r}
+# Function to convert a matrix to a phylogenetic tree
+matrix_to_tree <- function(matrix) {
+  edge_matrix <- as.matrix(matrix)
+  tree <- ape::phylo(edge = edge_matrix)
+  return(tree)
+}
+
+
+# Convert all combinations to trees
+all_trees <- lapply(all_combinations, function(group) {
+  lapply(group, matrix_to_tree)
+})
+
+# Print the resulting trees
+print(all_trees)
+
+
+
+
+```
+
+
+
+```{r}
+
+library(ape)
+
+original_tree <- read.tree(text = "((A, B), C);")
+
+original_edges <- original_tree$edge
+
+print(original_edges)
+
+# Find unique first column entries
+unique_first_column <- unique(original_edges[, 1])
+
+# Create a list to store both original and permuted groups of permutations
+all_groups <- list()
 
 # Iterate over unique first column entries
 for (entry in unique_first_column) {
@@ -81,82 +168,32 @@ for (entry in unique_first_column) {
   # Extract permutations in the group
   permutations_in_group <- original_edges[rows_in_group, ]
   
-  # Store the group in the list
-  permutation_groups[[as.character(entry)]] <- permutations_in_group
-}
-
-# Plot each group
-par(mfrow = c(2, 2))  # Set up a 2x2 plot layout
-for (i in seq_along(permutation_groups)) {
-  group <- permutation_groups[[i]]
+  # Permute the group (shuffling the order of rows)
+  permuted_group <- permutations_in_group[sample(nrow(permutations_in_group)), ]
   
-  # Check if there are enough rows to construct a tree
-  if (nrow(group) >= 3) {  # At least 3 rows are needed for a tree
-    # Create a tree with the current group
-    current_tree <- tree1
-    current_tree$edge <- group
-    
-    # Plot the tree
-    plot.phylo(current_tree, main = paste("Group", i), cex = 1.2)
-  } else {
-    cat("Skipping Group", i, "due to insufficient rows for a tree.\n")
-  }
+  # Store both the original and permuted groups in the list
+  all_groups[[as.character(entry)]] <- list(original = permutations_in_group, permuted = permuted_group)
 }
 
-# Reset the plotting layout
-par(mfrow = c(1, 1))
+
+print(all_groups)
 
 
 
 
 ```
 
-```{r}
-library(ape)
-library(gtools)
-
-original_tree <- read.tree(text = "((A, B), C);")
-tree1 <- read.tree(text = "((A, B), C);")
-
-original_edges <- original_tree$edge
-
-# Find unique first column entries
-unique_first_column <- unique(original_edges[, 1])
-
-# Create a list to store groups of permutations
-permutation_groups <- list()
-
-for (i in seq_len(nrow(all_permutations))) {
-  
-  # Create a tree with the current permutation of groups
-  current_tree <- tree1
-  
-  # Update the edge matrix based on the current permutation
-  for (j in seq_along(unique_first_column)) {
-    browser()
-    entry <- unique_first_column[j]
-    rows_in_group <- which(original_edges[, 1] == entry)
-    current_tree$edge[rows_in_group, ] <- permutation_groups[[as.character(entry)]][all_permutations[i, j], ]
-  }
-  
-  # Plot the tree
-  plot.phylo(current_tree, main = paste("Permutation", i), cex = 1.2)
-}
-
-# Reset the plotting layout
-par(mfrow = c(1, 1))
-```
 
 ```{r}
 library(ape)
 library(phangorn)
 library(gtools)
 
-original_tree <- read.tree(text = "((A, B), (C, D), E);")
+original_tree <- read.tree(text = "((A, B), (C, D));")
 num_tips <- length(original_tree$tip.label)
 
 # Define groups based on the original tree structure
-groups <- list(c("A", "B"), c("C", "D"), "E")
+groups <- list(c("A", "B"), c("C", "D"))
 
 rooted_tree <- multi2di(original_tree)
 original_labels <- original_tree$tip.label
@@ -217,6 +254,3 @@ calculate_c_value <- function(data_vector) {
 ```
 
 
-```{r}
-df2 <- read.csv("Salamanders.csv")
-```
