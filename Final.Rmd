@@ -103,27 +103,38 @@ create_adjacency_matrix <- function(edges) {
 case_matrix <-create_adjacency_matrix(edges)
 print(case_matrix)
 
+#finds children of a specific node in the adj matrix
+find_children <- function(adj_matrix, node) {
+  children_right <- which(adj_matrix[node,] == 1)  # Right child
+  children_left <- which(adj_matrix[node,] == 2)  # Left child
 
-find_flips <- function(adj_matrix) {
-  num_rows <- nrow(adj_matrix)
-  flips_list <- vector("list", length = num_rows)
-
-  for (i in 1:num_rows) {
-    row <- adj_matrix[i, ]
-    flips <- which(row == 2)
-    flips_list[[i]] <- flips
+  #no children
+  if (identical(children_right, integer(0))) {
+    result <- list(right = -1, left = -1)
+  } else {
+    result <- list(right = children_right, left = children_left)
   }
+  
 
-  return(flips_list)
+  return(result)
 }
 
+#find_flips <- function(adj_matrix) {
+ # num_rows <- nrow(adj_matrix)
+ # flips_list <- vector("list", length = num_rows)
+
+  #for (i in 1:num_rows) {
+   # row <- adj_matrix[i, ]
+    #flips <- which(row == 2)
+    #flips_list[[i]] <- flips
+  #}
+
+  #return(flips_list)
+#}
+
 # Test the function with your case_matrix
-flips_result <- find_flips(case_matrix)
-print(flips_result)
-
-```
-
-```{r}
+#flips_result <- find_flips(case_matrix)
+#print(flips_result)
 
 all_combinations <- function(adj_matrix, num) {
 
@@ -180,24 +191,9 @@ all_combinations <- function(adj_matrix, num) {
   }
 }
     
-adjoint_list <-all_combinations(case_matrices,5)
+adjoint_list <-all_combinations(case_matrix,5)
 print(adjoint_list)
 
-#finds children of a specific node in the adj matrix
-find_children <- function(adj_matrix, node) {
-  children_right <- which(adj_matrix[node,] == 1)  # Right child
-  children_left <- which(adj_matrix[node,] == 2)  # Left child
-
-  #no children
-  if (identical(children_right, integer(0))) {
-    result <- list(right = -1, left = -1)
-  } else {
-    result <- list(right = children_right, left = children_left)
-  }
-  
-
-  return(result)
-}
 
 #call function
 adj_matrix <- create_adjacency_matrix(edges)
@@ -268,6 +264,8 @@ get_edge_matrix <- function(adj_matrix) {
 # Example usage
 adj_matrix <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0), nrow = 7, byrow = TRUE)
+
+print(adj_matrix)
 
 my_matrix <- get_edge_matrix(adj_matrix)
 
