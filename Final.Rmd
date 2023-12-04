@@ -179,7 +179,6 @@ all_combinations <- function(adj_matrix, num) {
   }
 }
     
-
 adjoint_list <-all_combinations(case_matrices,5)
 print(adjoint_list)
 
