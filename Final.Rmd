@@ -66,8 +66,236 @@ library(igraph)
 library(purrr)
 
 # Begin by getting the edge matrix
-original_tree <- read.tree(text = "((A, B), (C, D));")
+original_tree <- read.tree(text = "((A, B),  (C,D));")
 edges <- original_tree$edge
+
+# function that gives us the adjacency matrix from our original edge 
+create_adjacency_matrix <- function(edges) {
+  # Find the number of nodes, to get the size of our matrix
+  nodes <- unique(as.vector(edges))
+  num_nodes <- length(nodes)
+
+  # Create an empty adjacency matrix
+  adj_matrix <- matrix(0, nrow = num_nodes, ncol = num_nodes)
+
+  # Recursively populate 
+  for (i in 1:nrow(edges)) {
+    #we look at the edge matrix and the right column are the from_nodes
+    from_node <- edges[i, 1]
+    #left columns
+    to_node <- edges[i, 2]
+
+    if (from_node %in% nodes) {
+  #storing the first to_node as the right child, defined as 1
+      adj_matrix[from_node, to_node] <- 1 
+  #we remove from_node from the list
+      nodes <- nodes[nodes != from_node]
+    } else {
+  #if it appears again then we assign the remaining child to the left, defined as 2
+      adj_matrix[from_node, to_node] <- 2  
+    }
+  }
+
+  return(adj_matrix)
+}
+
+case_matrix <-create_adjacency_matrix(edges)
+print(case_matrix)
+
+
+find_flips <- function(adj_matrix) {
+  num_rows <- nrow(adj_matrix)
+  flips_list <- vector("list", length = num_rows)
+
+  for (i in 1:num_rows) {
+    row <- adj_matrix[i, ]
+    flips <- which(row == 2)
+    flips_list[[i]] <- flips
+  }
+
+  return(flips_list)
+}
+
+# Test the function with your case_matrix
+flips_result <- find_flips(case_matrix)
+print(flips_result)
+
+```
+
+```{r}
+
+all_combinations <- function(adj_matrix, num) {
+
+#get the children
+
+ results <- find_children(adj_matrix, num)
+
+#define
+
+ left_child <- results$left
+ right_child <- results$right
+
+#this is the end 
+
+  if (left_child == -1) {
+
+    copy_adj_matrix <- adj_matrix
+
+    return(copy_adj_matrix)
+
+  } else {
+
+#make a copy for each recursion so you have a copy for every flip
+
+    left_1_copy_adj_matrix <- adj_matrix
+
+#calling function with nothing flipped, asking to flip children of left child
+
+    left_1 <- all_combinations(left_1_copy_adj_matrix, left_child)
+    
+# flip children of right child
+
+    right_1_copy_adj_matrix <- adj_matrix
+
+    right_1 <- all_combinations(right_1_copy_adj_matrix, right_child)
+    
+    
+# Swap left  and right children
+    adj_matrix[num, left_child] <- 1
+    adj_matrix[num, right_child] <- 2
+ 
+   
+#calling function with nothing flipped, asking to flip children of left child (used to be right child)
+    left_2_copy_adj_matrix <- adj_matrix
+    left_2 <- all_combinations(left_2_copy_adj_matrix, left_child)
+   
+
+   #calling function with nothing flipped, asking to flip children of right child (used to be left child)
+    right_2_copy_adj_matrix <- adj_matrix
+    right_2 <- all_combinations(right_2_copy_adj_matrix, right_child)
+    
+    return(list(left_1, left_2, right_1, right_2))
+    
+  }
+}
+    
+
+adjoint_list <-all_combinations(case_matrices,5)
+print(adjoint_list)
+
+#finds children of a specific node in the adj matrix
+find_children <- function(adj_matrix, node) {
+  children_right <- which(adj_matrix[node,] == 1)  # Right child
+  children_left <- which(adj_matrix[node,] == 2)  # Left child
+
+  #no children
+  if (identical(children_right, integer(0))) {
+    result <- list(right = -1, left = -1)
+  } else {
+    result <- list(right = children_right, left = children_left)
+  }
+  
+
+  return(result)
+}
+
+#call function
+adj_matrix <- create_adjacency_matrix(edges)
+
+# we 4 sets of matrices
+result <- all_combinations(adj_matrix, 5)
+
+
+# Function to get the last matrix in each sublist (maybe a partial solution?)
+get_last_matrix <- function(lst) {
+  lapply(lst, function(x) {
+    if (is.list(x)) {
+      get_last_matrix(head(x, n = 1))
+      get_last_matrix(head(x, n = 2))
+    } else {
+      x
+    }
+  })
+}
+
+# Apply the function 
+unique_matrices <- get_last_matrix(result)
+
+get_edge_matrix <- function(adj_matrix) {
+edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
+  
+  # We define what a child would look like in the adj matrix
+   find_children <- function(parent, root) {
+    children <- which(adj_matrix[parent, ] != 0)
+    right_children <- children[adj_matrix[parent, children] == 1]
+    left_children <- children[adj_matrix[parent, children] == 2]
+    
+    # We add the right children
+     for (child in right_children) {
+      edge <- c(parent, child)
+      edge_matrix <<- rbind(edge_matrix, edge)
+      
+      # Recursion
+      find_children(child, root)
+    }
+
+    # Then, add left children
+    for (child in left_children) {
+      edge <- c(parent, child)
+      edge_matrix <<- rbind(edge_matrix, edge)
+      
+      # Recursion
+      explore_children(child, root)
+    }
+  }
+
+   #Iterate through nodes to find roots and start exploration
+  for (node in 1:num_nodes) {
+    if (sum(adj_matrix[, node] != 0) == 0) {
+       #Node is a root, start exploration
+      explore_children(node, node)
+    }
+  }
+
+  return(edge_matrix)
+}
+#print(unique_matrices)
+
+#need to flatten it?
+edge_matrices_list <- lapply(unique_matrices, get_edge_matrix)
+
+
+
+
+```
+
+step 2-
+
+```{r}
+
+tree_string <- "((((((Odocoileus_hemionus,Odocoileus_virginianus),Rangifer_tarandus),Alces_alces),((Dama_dama,Cervus_canadensis))),Antilocapra_americana));"
+
+tree <- read.tree(text = tree_string)
+
+# I'm building the joint data outside of the csv file
+tip_labels <- tree$tip.label
+data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
+
+link_tree_values <- function(tree, tip_labels, data_order) {
+  # Create a named vector with tip labels and corresponding values
+  values_vec <- data_order[tip_labels]
+
+  # Annotate the tree with values for tips
+  tree$node.label <- ifelse(gsub(" ", "_", tree$tip.label) %in% names(values_vec), values_vec[gsub(" ", "_", tree$tip.label)], NA)
+
+  return(tree)
+
+}
+
+tree_with_values <- link_tree_values(tree, tip_labels, data_order)
+print(tree_with_values)
+
+edges <-tree_with_values$edge
 
 # function that gives us the adjacency matrix from our original edge 
 create_adjacency_matrix <- function(edges) {
@@ -105,6 +333,8 @@ all_combinations <- function(adj_matrix, num) {
  results <- find_children(adj_matrix, num)
  left_child <- results$left
  right_child <- results$right
+ 
+ 
 
  #first we take the case that there are no kids, if none then we just return a copy of what we have
   if (left_child == -1) {
@@ -157,10 +387,9 @@ find_children <- function(adj_matrix, node) {
 }
 
 
-
 adj_matrix <- create_adjacency_matrix(edges)
 print(adj_matrix)
-result <- all_combinations(adj_matrix, 5)
+result <- all_combinations(adj_matrix, 8)
 
 # Function to get the last matrix in each sublist
 get_last_matrix <- function(lst) {
@@ -177,9 +406,10 @@ get_last_matrix <- function(lst) {
 unique_matrices <- get_last_matrix(result)
 
 get_edge_matrix <- function(adj_matrix) {
-  num_nodes <- nrow(adj_matrix)
+  
+  #
   edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
-
+  
   # Helper function for recursive exploration
   explore_children <- function(parent, root) {
     children <- which(adj_matrix[parent, ] != 0)
@@ -216,41 +446,8 @@ get_edge_matrix <- function(adj_matrix) {
   return(edge_matrix)
 }
 print(unique_matrices)
-```
-
-```{r}
-library(ape)
-library(phangorn)
-library(gtools)
-
-original_tree <- read.tree(text = "((A, B), (C, D));")
-num_tips <- length(original_tree$tip.label)
-
-# Define groups based on the original tree structure
-groups <- list(c("A", "B"), c("C", "D"))
-
-rooted_tree <- multi2di(original_tree)
-original_labels <- original_tree$tip.label
-tree_list <- list()
-
-# I wanna permute along the groups now
-for (i in seq_along(groups)) {
-  group <- groups[[i]]
-  
-  # check if more than 2 perms if not just paste 
-  if (length(group) >= 2) {
-    permuted_tree <- rooted_tree
-    permuted_tree$tip.label[group] <- original_labels[group][unlist(permutations(length(group), 2, group))]
-    tree_list[[length(tree_list) + 1]] <- permuted_tree
-  } else {
-    tree_list[[length(tree_list) + 1]] <- rooted_tree
-  }
-}
-# Why the NA's also, im expecting 4? 
-print(tree_list)
 
 ```
-step 2-
 
 
 ```{r}
@@ -267,7 +464,20 @@ tree$edge
 tip_labels <- tree$tip.label
 data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
 
-#have to find something that gives me the correct trees 
+link_tree_values <- function(tree, tip_labels, data_order) {
+  # Create a named vector with tip labels and corresponding values
+  values_vec <- data_order[tip_labels]
+
+  # Annotate the tree with values for tips
+  tree$node.label <- ifelse(gsub(" ", "_", tree$tip.label) %in% names(values_vec), values_vec[gsub(" ", "_", tree$tip.label)], NA)
+
+  return(tree)
+
+}
+
+tree_with_values <- link_tree_values(tree, tip_labels, data_order)
+print(tree_with_values)
+
 
 # adapted function from above 
 calculate_c_value <- function(data_vector) {
@@ -279,6 +489,7 @@ calculate_c_value <- function(data_vector) {
   c_value <- sum_squared_differences / sum_of_differences
   return(c_value)
 }
+
 
 # getting all the c values 
 #c_values <- sapply(data_vectors_list, calculate_c_value)
