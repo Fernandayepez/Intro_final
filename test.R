@@ -1,6 +1,6 @@
 # test_functions.R
 library(testthat)
-source("Final.Rmd")  
+source("Final.R")  
 
 # Write a test for the function
 test_that("calculate_sum_squared_differences returns the expected result for a vector", {
