@@ -74,4 +74,43 @@ create_adjacency_matrix <- function(edges) {
   
   return(adj_matrix)
 }
-  
+
+get_edge_matrix <- function(adj_matrix) {
+  num_nodes <- nrow(adj_matrix)
+  edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
+
+  # We define what a child would look like in the adj matrix
+  find_children <- function(parent, root) {
+    children <- which(adj_matrix[parent, ] != 0)
+    right_children <- children[adj_matrix[parent, children] == 1]
+    left_children <- children[adj_matrix[parent, children] == 2]
+
+    # We add the right children
+    for (child in right_children) {
+      edge <- c(parent, child)
+      edge_matrix <<- rbind(edge_matrix, edge)
+
+      # Recursion
+      find_children(child, root)
+    }
+
+    # Then, add left children
+    for (child in left_children) {
+      edge <- c(parent, child)
+      edge_matrix <<- rbind(edge_matrix, edge)
+
+      # Recursion
+      find_children(child, root)
+    }
+  }
+
+   #Iterate through nodes to find roots and start find
+  for (node in 1:num_nodes) {
+    if (sum(adj_matrix[, node] != 0) == 0) {
+      # Node is a root
+      find_children(node, node)
+    }
+  }
+
+  return(edge_matrix)
+}

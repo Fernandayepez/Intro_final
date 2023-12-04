@@ -69,6 +69,7 @@ library(purrr)
 original_tree <- read.tree(text = "((A, B),  (C,D));")
 edges <- original_tree$edge
 
+
 # function that gives us the adjacency matrix from our original edge 
 create_adjacency_matrix <- function(edges) {
   # Find the number of nodes, to get the size of our matrix
@@ -220,20 +221,25 @@ get_last_matrix <- function(lst) {
 # Apply the function 
 unique_matrices <- get_last_matrix(result)
 
+```
+
+```{r}
+
 get_edge_matrix <- function(adj_matrix) {
-edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
-  
+  num_nodes <- nrow(adj_matrix)
+  edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
+
   # We define what a child would look like in the adj matrix
-   find_children <- function(parent, root) {
+  find_children <- function(parent, root) {
     children <- which(adj_matrix[parent, ] != 0)
     right_children <- children[adj_matrix[parent, children] == 1]
     left_children <- children[adj_matrix[parent, children] == 2]
-    
+
     # We add the right children
-     for (child in right_children) {
+    for (child in right_children) {
       edge <- c(parent, child)
       edge_matrix <<- rbind(edge_matrix, edge)
-      
+
       # Recursion
       find_children(child, root)
     }
@@ -242,30 +248,37 @@ edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
     for (child in left_children) {
       edge <- c(parent, child)
       edge_matrix <<- rbind(edge_matrix, edge)
-      
+
       # Recursion
-      explore_children(child, root)
+      find_children(child, root)
     }
   }
 
-   #Iterate through nodes to find roots and start exploration
+   #Iterate through nodes to find roots and start find
   for (node in 1:num_nodes) {
     if (sum(adj_matrix[, node] != 0) == 0) {
-       #Node is a root, start exploration
-      explore_children(node, node)
+      # Node is a root
+      find_children(node, node)
     }
   }
 
   return(edge_matrix)
 }
+
+# Example usage
+adj_matrix <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 0, 0), nrow = 7, byrow = TRUE)
+
+my_matrix <- get_edge_matrix(adj_matrix)
+
+# Print the resulting matrix
+print(my_matrix)
+
+
 #print(unique_matrices)
 
 #need to flatten it?
-edge_matrices_list <- lapply(unique_matrices, get_edge_matrix)
-
-
-
-
+#edge_matrices_list <- lapply(unique_matrices, get_edge_matrix)
 ```
 
 step 2-
@@ -405,45 +418,45 @@ get_last_matrix <- function(lst) {
 unique_matrices <- get_last_matrix(result)
 
 get_edge_matrix <- function(adj_matrix) {
-  
-  #
+  num_nodes <- nrow(adj_matrix)
   edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
-  
-  # Helper function for recursive exploration
-  explore_children <- function(parent, root) {
+
+  # We define what a child would look like in the adj matrix
+  find_children <- function(parent, root) {
     children <- which(adj_matrix[parent, ] != 0)
     right_children <- children[adj_matrix[parent, children] == 1]
     left_children <- children[adj_matrix[parent, children] == 2]
-    
-    # First, add right children
+
+    # We add the right children
     for (child in right_children) {
       edge <- c(parent, child)
       edge_matrix <<- rbind(edge_matrix, edge)
-      
-      # Recursively explore children
-      explore_children(child, root)
+
+      # Recursion
+      find_children(child, root)
     }
 
     # Then, add left children
     for (child in left_children) {
       edge <- c(parent, child)
       edge_matrix <<- rbind(edge_matrix, edge)
-      
-      # Recursively explore children
-      explore_children(child, root)
+
+      # Recursion
+      find_children(child, root)
     }
   }
 
-  # Iterate through nodes to find roots and start exploration
+   #Iterate through nodes to find roots and start find
   for (node in 1:num_nodes) {
     if (sum(adj_matrix[, node] != 0) == 0) {
-      # Node is a root, start exploration
-      explore_children(node, node)
+      # Node is a root
+      find_children(node, node)
     }
   }
 
   return(edge_matrix)
 }
+
 print(unique_matrices)
 
 ```
@@ -497,4 +510,9 @@ calculate_c_value <- function(data_vector) {
 
 ```
 
+```{r}
+ m <- matrix(c(5, 6, 6, 1,6, 2, 5, 7, 7, 3, 7, 4), nrow = 6, byrow = TRUE)
+
+print(m)
+```
 
