@@ -52,7 +52,8 @@ mean_estimate <- fit$estimate["mean"]
 sd_estimate <- fit$estimate["sd"]
 
 # I thought it was normal now 
-hist(c_value_df$Result, main = "Histogram of C Values", xlab = "C Values", ylab = "Frequency", col = "lightblue", border = "black")
+hist(c_value_df$Result, main = "Histogram of C Values", xlab = "C Values",
+     ylab = "Frequency", col = "lightblue", border = "black")
 
 
 
@@ -268,72 +269,7 @@ for (i in seq_along(column_vectors_list)) {
 
 ```
 
-```{r}
-permute_rows <- function(vector, adj_matrix) {
-  for (n in vector) {
-    if (n < 1 || n > nrow(adj_matrix)) {
-      stop("Invalid row index: ", n)
-    }
-    
-    left_child <- which(adj_matrix[n, ] == 1)
-    right_child <- which(adj_matrix[n, ] == 2)
 
-    if (any(left_child < 1 | left_child > ncol(adj_matrix)) || 
-        any(right_child < 1 | right_child > ncol(adj_matrix))) {
-      invalid_indices <- c(left_child[left_child < 1 | left_child > ncol(adj_matrix)],
-                            right_child[right_child < 1 | right_child > ncol(adj_matrix)])
-      stop("Invalid column indices: ", paste(invalid_indices, collapse = ", "))
-    }
-
-    adj_matrix[n, left_child] <- 2
-    adj_matrix[n, right_child] <- 1
-  }
-
-  return(adj_matrix)
-}
-
-
-# Assuming you have a list of column vectors
-column_vectors_list <- list(
-  list(1, 2, 3),
-  list(4, 5, 6),
-  list(7, 8, 9)
-)
-
-# Your original adjacency matrix
-adj_matrix <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 0, 0, 0, 0, 0,
-                       0, 0, 1, 2, 0, 0, 0), nrow = 7, byrow = TRUE)
-
-# List to store permuted matrices
-permuted_matrices_list <- list()
-
-# Iterate through the list of column vectors
-for (i in seq_along(column_vectors_list)) {
-  sublist <- column_vectors_list[[i]]
-  
-  # Filter out invalid indices
-  valid_indices <- sublist[sublist >= 1 & sublist <= nrow(adj_matrix)]
-  invalid_indices <- sublist[!(sublist >= 1 & sublist <= nrow(adj_matrix))]
-  
-  if (length(invalid_indices) > 0) {
-    cat("Invalid row indices:", paste(invalid_indices, collapse = ", "), "\n")
-  }
-  
-  # Call permute_rows with valid indices
-  permuted_matrix <- permute_rows(valid_indices, adj_matrix)
-  
-  # Save the permuted matrix
-  permuted_matrices_list[[i]] <- permuted_matrix
-  
-  # Print the permuted matrix
-  print(permuted_matrix)
-}
-
-
-# You can access the permuted matrices from the list (permuted_matrices_list)
-
-```
 
 ```{r}
 
@@ -391,25 +327,64 @@ library(gtools)
 tree_string <- "((((((Odocoileus_hemionus,Odocoileus_virginianus),Rangifer_tarandus),Alces_alces),((Dama_dama,Cervus_canadensis))),Antilocapra_americana));"
 
 tree <- read.tree(text = tree_string)
+edge_tree<-tree$edge
+print(edge_tree)
 
-tree$edge
 # I'm building the joint data outside of the csv file
-tip_labels <- tree$tip.label
-data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
+#tip_labels <- tree$tip.label
+#data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, #Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
 
-link_tree_values <- function(tree, tip_labels, data_order) {
+#link_tree_values <- function(tree, tip_labels, data_order) {
   # Create a named vector with tip labels and corresponding values
-  values_vec <- data_order[tip_labels]
+ # values_vec <- data_order[tip_labels]
 
   # Annotate the tree with values for tips
-  tree$node.label <- ifelse(gsub(" ", "_", tree$tip.label) %in% names(values_vec), values_vec[gsub(" ", "_", tree$tip.label)], NA)
+  #tree$node.label <- ifelse(gsub(" ", "_", tree$tip.label) %in% names(values_vec), values_vec[gsub(" ", "_", tree$tip.label)], NA)
 
-  return(tree)
+  #return(tree)
 
+#}
+
+#tree_with_values <- link_tree_values(tree, tip_labels, data_order)
+
+
+
+
+# function that gives us the adjacency matrix from our original edge 
+create_adjacency_matrix <- function(edges) {
+  # Find the number of nodes, to get the size of our matrix
+  nodes <- unique(as.vector(edges))
+  num_nodes <- length(nodes)
+
+  # Create an empty adjacency matrix
+  adj_matrix <- matrix(0, nrow = num_nodes, ncol = num_nodes)
+
+  # Recursively populate 
+  for (i in 1:nrow(edges)) {
+    #we look at the edge matrix and the right column are the from_nodes
+    from_node <- edges[i, 1]
+    #left columns
+    to_node <- edges[i, 2]
+
+    if (from_node %in% nodes) {
+  #storing the first to_node as the right child, defined as 1
+      adj_matrix[from_node, to_node] <- 1 
+  #we remove from_node from the list
+      nodes <- nodes[nodes != from_node]
+    } else {
+  #if it appears again then we assign the remaining child to the left, defined as 2
+      adj_matrix[from_node, to_node] <- 2  
+    }
+  }
+
+  return(adj_matrix)
 }
 
-tree_with_values <- link_tree_values(tree, tip_labels, data_order)
-print(tree_with_values)
+case_matrix <-create_adjacency_matrix(edge_tree)
+print(case_matrix)
+
+
+
 
 
 # adapted function from above 
