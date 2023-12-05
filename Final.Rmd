@@ -218,7 +218,6 @@ adj_matrix <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 # Identify non-zero rows
 non_zero_rows <- which(rowSums(adj_matrix != 0) > 0)
 
-# Assuming comb_1, comb_2, and comb_3 are your matrices
 comb_1 <- combn(non_zero_rows,1)
 comb_2 <- combn(non_zero_rows,2)
 comb_3 <- combn(non_zero_rows,3)
@@ -235,11 +234,16 @@ convert_matrices_to_column_vectors <- function(matrix_list) {
     })
   })
 }
+
 # Create a list of matrices
 matrix_list <- list(comb_1, comb_2, comb_3)
 
+print(matrix_list)
+
 # Apply the function
 column_vectors_list <- convert_matrices_to_column_vectors(matrix_list)
+
+print(column_vectors_list)
 
 permute_rows <- function(vector, adj_matrix) {
   for (n in vector) {
@@ -253,20 +257,31 @@ permute_rows <- function(vector, adj_matrix) {
   return(adj_matrix)
 }
 
-permuted_matrices_list <- list()
+permute_matrix_combinations <- function(matrix_combinations, adj_matrix) {
+  permuted_matrices_list <- list()
 
-for (i in seq_along(column_vectors_list)) {
-  sublist <- column_vectors_list[[i]]
-  print(sublist)
-  permuted_matrix <- permute_rows(sublist, adj_matrix)
-  
-  # Save the permuted matrix
-  permuted_matrices_list[[i]] <- permuted_matrix
-  
-  # Print the permuted matrix
-  print(permuted_matrix)
+  for (i in matrix_combinations) {
+    matrix_comb <- matrix_combinations[[i]]
+    print(matrix_comb)
+    
+    # Apply the function for each column vector in the matrix combination
+    permuted_matrix <- adj_matrix
+    for (j in seq_along(matrix_comb)) {
+      vector <- matrix_comb[, j]
+      permuted_matrix <- permute_rows(vector, permuted_matrix)
+    }
+
+    # Save the permuted matrix
+    permuted_matrices_list[[i]] <- permuted_matrix
+    
+   
+    print(permuted_matrix)
+  }
+
+  return(permuted_matrices_list)
 }
 
+result_permuted_matrices <- permute_matrix_combinations(column_vectors_list, adj_matrix)
 ```
 
 
