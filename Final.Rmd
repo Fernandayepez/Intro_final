@@ -124,7 +124,9 @@ find_children <- function(adj_matrix, node) {
 
 ```
 
+
 ```{r}
+
 adj_matrix <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 0, 0, 0, 0, 0,
                        0, 0, 1, 2, 0, 0, 0), nrow = 7, byrow = TRUE)
@@ -133,117 +135,38 @@ adj_matrix <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 
 # Identify non-zero rows
 non_zero_rows <- which(rowSums(adj_matrix != 0) > 0)
 
-# Assuming comb_1, comb_2, and comb_3 are your matrices
 comb_1 <- combn(non_zero_rows,1)
 comb_2 <- combn(non_zero_rows,2)
 comb_3 <- combn(non_zero_rows,3)
 
-print(comb_1)
-print(comb_2) 
-print(comb_3 )
-
-convert_matrices_to_column_vectors <- function(matrix_list) {
-  lapply(matrix_list, function(matrix) {
-    # Apply the function to each matrix to extract its column vectors
-    lapply(1:ncol(matrix), function(col) {
-      matrix[, col]
-    })
-  })
-}
 # Create a list of matrices
 matrix_list <- list(comb_1, comb_2, comb_3)
 
-# Apply the function
-column_vectors_list <- convert_matrices_to_column_vectors(matrix_list)
+#print(matrix_list)
 
-permute_rows <- function(vector, adj_matrix) {
-  for (n in vector) {
-    if (n < 1 || n > nrow(adj_matrix)) {
-      stop("Invalid row index: ", n)
-    }
+
+extractColumns <- function(matrix_list) {
+  result <- list()  # Create an empty list to store extracted columns
+  
+  # Iterate through each matrix in the list
+  for (i in seq_along(matrix_list)) {
+    current_matrix <- matrix_list[[i]]
     
-    left_child <- which(adj_matrix[n, ] == 1)
-    right_child <- which(adj_matrix[n, ] == 2)
-
-    if (any(left_child < 1 | left_child > ncol(adj_matrix)) || 
-        any(right_child < 1 | right_child > ncol(adj_matrix))) {
-      invalid_indices <- c(left_child[left_child < 1 | left_child > ncol(adj_matrix)],
-                            right_child[right_child < 1 | right_child > ncol(adj_matrix)])
-      stop("Invalid column indices: ", paste(invalid_indices, collapse = ", "))
-    }
-
-    adj_matrix[n, left_child] <- 2
-    adj_matrix[n, right_child] <- 1
-  }
-
-  return(adj_matrix)
-}
-
-permuted_matrices_list <- list()
-
-for (i in seq_along(column_vectors_list)) {
-  sublist <- column_vectors_list[[i]]
-
-  # Filter out invalid indices in each vector of the sublist
-  valid_indices <- lapply(sublist, function(vec) vec[vec >= 1 & vec <= nrow(adj_matrix)])
-  invalid_indices <- lapply(sublist, function(vec) vec[!(vec >= 1 & vec <= nrow(adj_matrix))])
-
-  # Print invalid indices for each vector
-  for (j in seq_along(invalid_indices)) {
-    if (length(invalid_indices[[j]]) > 0) {
-      cat("Invalid row indices in vector", j, ":", paste(invalid_indices[[j]], collapse = ", "), "\n")
+    # Iterate through each column in the matrix
+    for (j in seq(ncol(current_matrix))) {
+      # Extract the j-th column from the current matrix
+      current_column <- current_matrix[, j]
+      
+      # Add the extracted column to the result list
+      result[[length(result) + 1]] <- current_column
     }
   }
-
-  # Call permute_rows with valid indices for each vector
-  permuted_matrix <- permute_rows(unlist(valid_indices), adj_matrix)
-
-  # Save the permuted matrix
-  permuted_matrices_list[[i]] <- permuted_matrix
-
-  # Print the permuted matrix
-  print(permuted_matrix)
+  
+  return(result)
 }
 
-
-```
-
-```{r}
-
-adj_matrix <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 0, 0, 0, 0, 0,
-                       0, 0, 1, 2, 0, 0, 0), nrow = 7, byrow = TRUE)
-
-
-# Identify non-zero rows
-non_zero_rows <- which(rowSums(adj_matrix != 0) > 0)
-
-comb_1 <- combn(non_zero_rows,1)
-comb_2 <- combn(non_zero_rows,2)
-comb_3 <- combn(non_zero_rows,3)
-
-print(comb_1)
-print(comb_2) 
-print(comb_3 )
-
-convert_matrices_to_column_vectors <- function(matrix_list) {
-  lapply(matrix_list, function(matrix) {
-    # Apply the function to each matrix to extract its column vectors
-    lapply(1:ncol(matrix), function(col) {
-      matrix[, col]
-    })
-  })
-}
-
-# Create a list of matrices
-matrix_list <- list(comb_1, comb_2, comb_3)
-
-print(matrix_list)
-
-# Apply the function
-column_vectors_list <- convert_matrices_to_column_vectors(matrix_list)
-
-print(column_vectors_list)
+# Example usage with your matrix_list
+matrix_columns <- extractColumns(matrix_list)
 
 permute_rows <- function(vector, adj_matrix) {
   for (n in vector) {
@@ -260,14 +183,14 @@ permute_rows <- function(vector, adj_matrix) {
 permute_matrix_combinations <- function(matrix_combinations, adj_matrix) {
   permuted_matrices_list <- list()
 
-  for (i in matrix_combinations) {
+  for (i in seq_along(matrix_combinations)) {
     matrix_comb <- matrix_combinations[[i]]
-    print(matrix_comb)
+
     
     # Apply the function for each column vector in the matrix combination
     permuted_matrix <- adj_matrix
     for (j in seq_along(matrix_comb)) {
-      vector <- matrix_comb[, j]
+      vector <- matrix_comb[j]
       permuted_matrix <- permute_rows(vector, permuted_matrix)
     }
 
@@ -275,18 +198,15 @@ permute_matrix_combinations <- function(matrix_combinations, adj_matrix) {
     permuted_matrices_list[[i]] <- permuted_matrix
     
    
-    print(permuted_matrix)
+    #print(permuted_matrix)
   }
 
   return(permuted_matrices_list)
 }
 
-result_permuted_matrices <- permute_matrix_combinations(column_vectors_list, adj_matrix)
-```
+result_permuted_matrices <- permute_matrix_combinations(matrix_columns, adj_matrix)
+result_permuted_matrices <- list(adj_matrix, result_permuted_matrices)
 
-
-
-```{r}
 
 get_edge_matrix <- function(adj_matrix) {
   num_nodes <- nrow(adj_matrix)
@@ -345,26 +265,6 @@ tree <- read.tree(text = tree_string)
 edge_tree<-tree$edge
 print(edge_tree)
 
-# I'm building the joint data outside of the csv file
-#tip_labels <- tree$tip.label
-#data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, #Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
-
-#link_tree_values <- function(tree, tip_labels, data_order) {
-  # Create a named vector with tip labels and corresponding values
- # values_vec <- data_order[tip_labels]
-
-  # Annotate the tree with values for tips
-  #tree$node.label <- ifelse(gsub(" ", "_", tree$tip.label) %in% names(values_vec), values_vec[gsub(" ", "_", tree$tip.label)], NA)
-
-  #return(tree)
-
-#}
-
-#tree_with_values <- link_tree_values(tree, tip_labels, data_order)
-
-
-
-
 # function that gives us the adjacency matrix from our original edge 
 create_adjacency_matrix <- function(edges) {
   # Find the number of nodes, to get the size of our matrix
@@ -399,9 +299,6 @@ case_matrix <-create_adjacency_matrix(edge_tree)
 print(case_matrix)
 
 
-
-
-
 # adapted function from above 
 calculate_c_value <- function(data_vector) {
   squared_differences <- (data_vector[-1] - data_vector[-length(data_vector)])^2
@@ -413,6 +310,11 @@ calculate_c_value <- function(data_vector) {
   return(c_value)
 }
 
+
+tip_labels <- tree$tip.label
+data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
+
+data_order_2 <-
 
 # getting all the c values 
 #c_values <- sapply(data_vectors_list, calculate_c_value)
