@@ -290,37 +290,3 @@ cat("Percentage of values larger than or equal to", threshold, "is:", percentage
 
 ```
 
-```{r}
-# Install and load the igraph package if not already installed
-if (!requireNamespace("igraph", quietly = TRUE)) {
-  install.packages("igraph")
-}
-library(igraph)
-
-# Your edge matrix
-edge_matrix <- matrix(c(
-  8, 9,
-  9, 10,
-  10, 11,
-  11, 12,
-  12, 13,
-  13, 1,
-  13, 2,
-  12, 3,
-  11, 4,
-  10, 14,
-  14, 15,
-  15, 5,
-  15, 6,
-  9, 7
-), ncol = 2, byrow = TRUE)
-
-# Extract unique values
-unique_values <- unique(edge_matrix)
-
-# Extract numbers 1-7
-result <- unique_values[unique_values >= 1 & unique_values <= 7]
-
-# Print the result
-print(result)
-```
