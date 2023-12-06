@@ -114,3 +114,40 @@ get_edge_matrix <- function(adj_matrix) {
 
   return(edge_matrix)
 }
+
+permute_rows <- function(vector, adj_matrix) {
+  for (n in vector) {
+    left_child <- which(adj_matrix[n, ] == 1)
+    right_child <- which(adj_matrix[n, ] == 2)
+    
+    adj_matrix[n, left_child] <- 2
+    adj_matrix[n, right_child] <- 1
+  }
+  
+  return(adj_matrix)
+}
+permute_matrix_combinations <- function(matrix_combinations, adj_matrix) {
+  permuted_matrices_list <- list()
+  
+  for (i in seq_along(matrix_combinations)) {
+    matrix_comb <- matrix_combinations[[i]]
+    
+    
+    # Apply the function for each column vector in the matrix combination
+    permuted_matrix <- adj_matrix
+    for (j in seq_along(matrix_comb)) {
+      vector <- matrix_comb[j]
+      permuted_matrix <- permute_rows(vector, permuted_matrix)
+    }
+    
+    # Save the permuted matrix
+    permuted_matrices_list[[i]] <- permuted_matrix
+    
+    
+    #print(permuted_matrix)
+  }
+  
+  return(permuted_matrices_list)
+}
+
+

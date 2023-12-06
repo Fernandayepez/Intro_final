@@ -205,9 +205,12 @@ permute_matrix_combinations <- function(matrix_combinations, adj_matrix) {
 }
 
 result_permuted_matrices <- permute_matrix_combinations(matrix_columns, adj_matrix)
+print(result_permuted_matrices)
 result_permuted_matrices <- list(adj_matrix, result_permuted_matrices)
 
+```
 
+```{r}
 get_edge_matrix <- function(adj_matrix) {
   num_nodes <- nrow(adj_matrix)
   edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
@@ -247,6 +250,11 @@ get_edge_matrix <- function(adj_matrix) {
 
   return(edge_matrix)
 }
+
+edges_result <- lapply(result_permuted_matrices, get_edge_matrix)
+
+
+print(edges_result)
 
 ```
 
