@@ -194,8 +194,6 @@ permute_matrix_combinations <- function(matrix_combinations, adj_matrix) {
 
 result_permuted_matrices <- permute_matrix_combinations(matrix_columns, case_matrix)
 
-#result_permuted_matrices <- list(adj_matrix, result_permuted_matrices)
-
 get_edge_matrix <- function(adj_matrix) {
   num_nodes <- nrow(adj_matrix)
   edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
@@ -252,10 +250,21 @@ permute_rows <- function(vector, adj_matrix) {
 edges_result <- lapply(result_permuted_matrices, get_edge_matrix)
 print(edges_result)
 
-tip_labels <- tree$tip.label
-data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
+extract_and_replace_numbers <- function(edge_matrix) {
+  # Extract unique values between 1 and 7
+  unique_values <- unique(edge_matrix)
+  selected_values <- unique_values[unique_values >= 1 & unique_values <= 7]
+  
+  # Define a named vector for replacement
+  replacement_values <- c("1" = 74, "2" = 57, "3" = 100, "4" = 384, "5" = 55, "6" = 300, "7" = 5)
+  
+  # Replace and return the values
+  result <- replacement_values[as.character(selected_values)]
+  return(result)
+}
 
-# adapted function from above 
+replaced_values_list <- lapply(edges_result, extract_and_replace_numbers)
+
 calculate_c_value <- function(data_vector) {
   squared_differences <- (data_vector[-1] - data_vector[-length(data_vector)])^2
   sum_squared_differences <- sum(squared_differences)
@@ -266,18 +275,18 @@ calculate_c_value <- function(data_vector) {
   return(c_value)
 }
 
-# Given edge matrix
-edge_matrix <- matrix(c(8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 1, 13, 2, 12, 3, 11, 4, 10, 14, 14, 15, 15, 5, 15, 6, 9, 7), ncol = 2, byrow = TRUE)
 
-# Given tip labels and data order
-tip_labels <- c("Odocoileus_hemionus", "Odocoileus_virginianus", "Rangifer_tarandus", "Alces_alces", "Dama_dama", "Cervus_canadensis", "Antilocapra_americana")
-data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
+all_c_values <- lapply(replaced_values_list, calculate_c_value)
+
+average_c_value <- mean(unlist(all_c_values))
 
 
-# getting all the c values 
-#c_values <- sapply(data_vectors_list, calculate_c_value)
+threshold <- 2.084376
+percentage_greater_than_or_equal <- mean(c_value_df$Result >= threshold) * 100
 
-#average_c_value <- mean(c_values)
+cat("Percentage of values larger than or equal to", threshold, "is:", percentage_greater_than_or_equal, "%")
+
+
 
 ```
 
@@ -306,13 +315,12 @@ edge_matrix <- matrix(c(
   9, 7
 ), ncol = 2, byrow = TRUE)
 
-# Create a directed graph from the edge matrix
-graph <- graph_from_edgelist(as.matrix(edge_matrix), directed = TRUE)
+# Extract unique values
+unique_values <- unique(edge_matrix)
 
-# Perform topological sort
-topo_order <- topological.sort(graph)
+# Extract numbers 1-7
+result <- unique_values[unique_values >= 1 & unique_values <= 7]
 
-# Print the topological order
-print(topo_order)
-
+# Print the result
+print(result)
 ```

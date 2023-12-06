@@ -1,3 +1,5 @@
+#this file is purely to test the most important functions, the totallity of the code is found in Final.Rmd 
+
 library(gtools)
 library(MASS)
 
