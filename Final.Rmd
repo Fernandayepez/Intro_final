@@ -66,9 +66,10 @@ library(ape)
 library(igraph)
 library(purrr)
 
-# Begin by getting the edge matrix
-original_tree <- read.tree(text = "((A, B),  (C,D));")
-edges <- original_tree$edge
+tree_string <- "((((((Odocoileus_hemionus,Odocoileus_virginianus),Rangifer_tarandus),Alces_alces),((Dama_dama,Cervus_canadensis))),Antilocapra_americana));"
+
+tree <- read.tree(text = tree_string)
+edges<-tree$edge
 
 
 # function that gives us the adjacency matrix from our original edge 
@@ -121,19 +122,8 @@ find_children <- function(adj_matrix, node) {
 }
 
 
-
-```
-
-
-```{r}
-
-adj_matrix <- matrix(c(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                       0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 1, 2, 0, 0, 0, 0, 0,
-                       0, 0, 1, 2, 0, 0, 0), nrow = 7, byrow = TRUE)
-
-
 # Identify non-zero rows
-non_zero_rows <- which(rowSums(adj_matrix != 0) > 0)
+non_zero_rows <- which(rowSums(case_matrix != 0) > 0)
 
 comb_1 <- combn(non_zero_rows,1)
 comb_2 <- combn(non_zero_rows,2)
@@ -141,8 +131,6 @@ comb_3 <- combn(non_zero_rows,3)
 
 # Create a list of matrices
 matrix_list <- list(comb_1, comb_2, comb_3)
-
-#print(matrix_list)
 
 
 extractColumns <- function(matrix_list) {
@@ -204,13 +192,10 @@ permute_matrix_combinations <- function(matrix_combinations, adj_matrix) {
   return(permuted_matrices_list)
 }
 
-result_permuted_matrices <- permute_matrix_combinations(matrix_columns, adj_matrix)
-print(result_permuted_matrices)
-result_permuted_matrices <- list(adj_matrix, result_permuted_matrices)
+result_permuted_matrices <- permute_matrix_combinations(matrix_columns, case_matrix)
 
-```
+#result_permuted_matrices <- list(adj_matrix, result_permuted_matrices)
 
-```{r}
 get_edge_matrix <- function(adj_matrix) {
   num_nodes <- nrow(adj_matrix)
   edge_matrix <- matrix(NA, ncol = 2, nrow = 0)
@@ -233,7 +218,7 @@ get_edge_matrix <- function(adj_matrix) {
     # Then, add left children
     for (child in left_children) {
       edge <- c(parent, child)
-      edge_matrix <- rbind(edge_matrix, edge)
+      edge_matrix <<- rbind(edge_matrix, edge)
 
       # Recursion
       find_children(child, root)
@@ -251,61 +236,24 @@ get_edge_matrix <- function(adj_matrix) {
   return(edge_matrix)
 }
 
-edges_result <- lapply(result_permuted_matrices, get_edge_matrix)
-
-
-print(edges_result)
-
-```
-
-step 2-
-
-
-
-```{r}
-library(ape)
-library(phangorn)
-library(gtools)
-
-tree_string <- "((((((Odocoileus_hemionus,Odocoileus_virginianus),Rangifer_tarandus),Alces_alces),((Dama_dama,Cervus_canadensis))),Antilocapra_americana));"
-
-tree <- read.tree(text = tree_string)
-edge_tree<-tree$edge
-print(edge_tree)
-
-# function that gives us the adjacency matrix from our original edge 
-create_adjacency_matrix <- function(edges) {
-  # Find the number of nodes, to get the size of our matrix
-  nodes <- unique(as.vector(edges))
-  num_nodes <- length(nodes)
-
-  # Create an empty adjacency matrix
-  adj_matrix <- matrix(0, nrow = num_nodes, ncol = num_nodes)
-
-  # Recursively populate 
-  for (i in 1:nrow(edges)) {
-    #we look at the edge matrix and the right column are the from_nodes
-    from_node <- edges[i, 1]
-    #left columns
-    to_node <- edges[i, 2]
-
-    if (from_node %in% nodes) {
-  #storing the first to_node as the right child, defined as 1
-      adj_matrix[from_node, to_node] <- 1 
-  #we remove from_node from the list
-      nodes <- nodes[nodes != from_node]
-    } else {
-  #if it appears again then we assign the remaining child to the left, defined as 2
-      adj_matrix[from_node, to_node] <- 2  
-    }
+permute_rows <- function(vector, adj_matrix) {
+  for (n in vector) {
+    left_child <- which(adj_matrix[n, ] == 1)
+    right_child <- which(adj_matrix[n, ] == 2)
+    
+    adj_matrix[n, left_child] <- 2
+    adj_matrix[n, right_child] <- 1
   }
-
+  
   return(adj_matrix)
 }
+ 
+  
+edges_result <- lapply(result_permuted_matrices, get_edge_matrix)
+print(edges_result)
 
-case_matrix <-create_adjacency_matrix(edge_tree)
-print(case_matrix)
-
+tip_labels <- tree$tip.label
+data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
 
 # adapted function from above 
 calculate_c_value <- function(data_vector) {
@@ -318,11 +266,13 @@ calculate_c_value <- function(data_vector) {
   return(c_value)
 }
 
+# Given edge matrix
+edge_matrix <- matrix(c(8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 1, 13, 2, 12, 3, 11, 4, 10, 14, 14, 15, 15, 5, 15, 6, 9, 7), ncol = 2, byrow = TRUE)
 
-tip_labels <- tree$tip.label
+# Given tip labels and data order
+tip_labels <- c("Odocoileus_hemionus", "Odocoileus_virginianus", "Rangifer_tarandus", "Alces_alces", "Dama_dama", "Cervus_canadensis", "Antilocapra_americana")
 data_order <- c(Odocoileus_hemionus = 74, Odocoileus_virginianus = 57, Rangifer_tarandus = 100, Alces_alces = 384, Dama_dama = 55, Cervus_canadensis = 300, Antilocapra_americana = 50)
 
-data_order_2 <-
 
 # getting all the c values 
 #c_values <- sapply(data_vectors_list, calculate_c_value)
@@ -331,3 +281,38 @@ data_order_2 <-
 
 ```
 
+```{r}
+# Install and load the igraph package if not already installed
+if (!requireNamespace("igraph", quietly = TRUE)) {
+  install.packages("igraph")
+}
+library(igraph)
+
+# Your edge matrix
+edge_matrix <- matrix(c(
+  8, 9,
+  9, 10,
+  10, 11,
+  11, 12,
+  12, 13,
+  13, 1,
+  13, 2,
+  12, 3,
+  11, 4,
+  10, 14,
+  14, 15,
+  15, 5,
+  15, 6,
+  9, 7
+), ncol = 2, byrow = TRUE)
+
+# Create a directed graph from the edge matrix
+graph <- graph_from_edgelist(as.matrix(edge_matrix), directed = TRUE)
+
+# Perform topological sort
+topo_order <- topological.sort(graph)
+
+# Print the topological order
+print(topo_order)
+
+```
